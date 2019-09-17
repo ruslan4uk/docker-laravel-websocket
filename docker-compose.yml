@@ -5,30 +5,16 @@ services:
     image: nginx:1.17
     restart: always
     ports:
-      # laravel backend api server
-      - 8080:8080
+      # frontend
+#      - 80:80
+      - 443:443
+      # backend
+      - 80:8000
     working_dir: ${APP_PATH_CONTAINER}
     volumes:
       - ${APP_PATH_HOST}:${APP_PATH_CONTAINER}
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf
-    environment:
-      - NGINX_HOST=i001.ru
-      - NGINX_PORT=80
-    depends_on:
-      - php
-    links:
-      - php
-
-  nodejs:
-    image: node:10.16.3-alpine
-    restart: always
-    volumes:
-      - ${APP_PATH_HOST}:${APP_PATH_CONTAINER}
-    working_dir: ${APP_PATH_CONTAINER}/frontend
-    ports:
-      - 80:8888
-    command: >
-      sh -c "yarn install && yarn run start"
+    user: 1000:1000
 
   php:
     build: ./php
@@ -36,6 +22,12 @@ services:
     volumes:
       - ${APP_PATH_HOST}:${APP_PATH_CONTAINER}
     working_dir: ${APP_PATH_CONTAINER}/backend
+    environment:
+      - APP_PATH_HOST=${APP_PATH_HOST}
+      - APP_PATH_CONTAINER=${APP_PATH_CONTAINER}
+    ports:
+      - 9001:9001
+    user: 1000:1000
 
   db:
     image: mysql
@@ -45,6 +37,7 @@ services:
       MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
     volumes:
       - ${DB_PATH_HOST}:/var/lib/mysql
+    user: 1000:1000
 
   adminer:
     image: adminer
@@ -58,6 +51,7 @@ services:
       - ${APP_PATH_HOST}:${APP_PATH_CONTAINER}
     working_dir: ${APP_PATH_CONTAINER}/backend
     command: composer install
+    user: 1000:1000
 
   redis:
     image: redis:5.0-alpine
@@ -66,3 +60,24 @@ services:
       - 6379:6379
     volumes:
       - ./storage/redis/data:/data
+    command: ["sh", "-c", "exec redis-server --requirepass \"${REDIS_PASSWORD}\""]
+    user: 1000:1000
+
+  nodejs:
+    image: node:10.16.3-alpine
+    volumes:
+      - ${APP_PATH_HOST}:${APP_PATH_CONTAINER}
+    working_dir: ${APP_PATH_CONTAINER}/backend
+    ports:
+      # broadcast
+      # sh -c "yarn install && yarn run dev && yarn run pm2 start laravel-echo-server.js"
+      - 6001:6001
+#    command: >
+#      sh -c "npm install -g laravel-echo-server && node laravel-echo-server.js"
+    user: 1000:1000
+
+
+
+
+
+
