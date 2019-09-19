@@ -14,7 +14,6 @@ services:
     volumes:
       - ${APP_PATH_HOST}:${APP_PATH_CONTAINER}
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf
-    user: 1000:1000
 
   php:
     build: ./php
@@ -27,7 +26,9 @@ services:
       - APP_PATH_CONTAINER=${APP_PATH_CONTAINER}
     ports:
       - 9001:9001
-    user: 1000:1000
+    depends_on:
+      - redis
+      - db
 
   db:
     image: mysql
@@ -37,21 +38,23 @@ services:
       MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
     volumes:
       - ${DB_PATH_HOST}:/var/lib/mysql
-    user: 1000:1000
 
-  adminer:
-    image: adminer
-    restart: always
-    ports:
-      - 8081:8080
+#  composer:
+#    image: composer
+#    volumes:
+#      - ${APP_PATH_HOST}:${APP_PATH_CONTAINER}
+#    working_dir: ${APP_PATH_CONTAINER}/backend
+#    command: composer install
 
-  composer:
-    image: composer
-    volumes:
-      - ${APP_PATH_HOST}:${APP_PATH_CONTAINER}
-    working_dir: ${APP_PATH_CONTAINER}/backend
-    command: composer install
-    user: 1000:1000
+#  pm2:
+#    build: ./pm2
+#    restart: always
+#    volumes:
+#      - ${APP_PATH_HOST}:${APP_PATH_CONTAINER}
+#    working_dir: ${APP_PATH_CONTAINER}/backend
+#    ports:
+#      - 6001:6001
+#    command: [ "pm2-runtime", "start", "pm2.json" ]
 
   redis:
     image: redis:5.0-alpine
@@ -61,7 +64,6 @@ services:
     volumes:
       - ./storage/redis/data:/data
     command: ["sh", "-c", "exec redis-server --requirepass \"${REDIS_PASSWORD}\""]
-    user: 1000:1000
 
   nodejs:
     image: node:10.16.3-alpine
@@ -72,11 +74,16 @@ services:
       # broadcast
       # sh -c "yarn install && yarn run dev && yarn run pm2 start laravel-echo-server.js"
       - 6001:6001
-#    command: >
-#      sh -c "npm install -g laravel-echo-server && node laravel-echo-server.js"
-    user: 1000:1000
+    command: >
+      sh -c "node laravel-echo-server.js"
+    depends_on:
+      - redis
 
-
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8081:8080
 
 
 
